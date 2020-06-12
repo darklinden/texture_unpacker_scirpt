@@ -222,6 +222,70 @@ def frames_from_data(filename, format):
                 # print(frame)
 
         return frames
+    
+    elif format == 'plist3':
+        data_filename = filename + '.plist'
+        root = ElementTree.fromstring(open(data_filename, 'r').read())
+        plist_dict = tree_to_dict(root[0])
+        to_list = lambda x: x.replace('{', '').replace('}', '').split(',')
+        frames = plist_dict['frames'].items()
+        for k, v in frames:
+            frame = v
+            rectlist = to_list(frame['textureRect'])
+            frame['rotated'] = frame['textureRotated']
+            # print(k)
+            if not frame['textureRotated']:
+
+                width = int(rectlist[2])
+                height = int(rectlist[3])
+                frame['box'] = (
+                    int(rectlist[0]),
+                    int(rectlist[1]),
+                    int(rectlist[0]) + width,
+                    int(rectlist[1]) + height
+                )
+                real_rectlist = to_list(frame['spriteSourceSize'])
+                real_width = int(real_rectlist[0])
+                real_height = int(real_rectlist[1])
+                real_sizelist = [real_width, real_height]
+                frame['real_sizelist'] = real_sizelist
+                offsetlist = to_list(frame['spriteOffset'])
+                offset_x = int(offsetlist[0])
+                offset_y = int(offsetlist[1])
+                frame['result_box'] = (
+                    int((real_sizelist[0] - width) / 2 + offset_x),
+                    int((real_sizelist[1] - height) / 2 + offset_y),
+                    int((real_sizelist[0] + width) / 2 + offset_x),
+                    int((real_sizelist[1] + height) / 2 + offset_y)
+                )
+
+            else:
+
+                width = int(rectlist[2])
+                height = int(rectlist[3])
+                frame['box'] = (
+                    int(rectlist[0]),
+                    int(rectlist[1]),
+                    int(rectlist[0]) + height,
+                    int(rectlist[1]) + width
+                )
+                real_rectlist = to_list(frame['spriteSourceSize'])
+                real_width = int(real_rectlist[0])
+                real_height = int(real_rectlist[1])
+                real_sizelist = [real_width, real_height]
+                frame['real_sizelist'] = real_sizelist
+                offsetlist = to_list(frame['spriteOffset'])
+                offset_x = int(offsetlist[0])
+                offset_y = int(offsetlist[1])
+                frame['result_box'] = (
+                    int((real_sizelist[0] - width) / 2 + offset_x),
+                    int((real_sizelist[1] - height) / 2 - offset_y),
+                    int((real_sizelist[0] + width) / 2 + offset_x),
+                    int((real_sizelist[1] + height) / 2 - offset_y)
+                )
+                print(frame)
+
+        return frames
     else:
         print("Wrong data format on parsing: '" + format + "'!")
         exit(1)
@@ -231,7 +295,7 @@ def gen_png_from_data(filename, format):
     big_image = Image.open(filename + ".png")
     frames = frames_from_data(filename, format)
     for k, v in frames:
-        if not format == 'plist2':
+        if not (format == 'plist2' or format == 'plist3'):
             try:
                 frame = v
                 box = frame['box']
@@ -334,7 +398,7 @@ def get_sources_file(filename, format, ext):
 
 def main():
     if len(sys.argv) <= 1:
-        print("You must pass filename as the first parameter!")
+        print("You must pass filename [plist or cocos or plist1 or plist2] as parameter!")
         exit(1)
     
     print(sys.argv)
@@ -342,7 +406,7 @@ def main():
     ext = '.plist'
     if len(sys.argv) < 3:
         print("No data format passed, assuming .plist")
-    elif sys.argv[2] == 'plist' or sys.argv[2] == 'cocos' or sys.argv[2] == 'plist1' or sys.argv[2] == 'plist2':
+    elif sys.argv[2] == 'plist' or sys.argv[2] == 'cocos' or sys.argv[2] == 'plist1' or sys.argv[2] == 'plist2' or sys.argv[2] == 'plist3':
         print(str(sys.argv[2]) + " data format passed")
     elif sys.argv[2] == 'json':
         ext = '.json'
